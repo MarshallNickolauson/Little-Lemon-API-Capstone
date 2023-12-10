@@ -1,3 +1,4 @@
-from django.shortcuts import render
+from rest_framework.viewsets import ModelViewSet
 
-# Create your views here.
+# TODO Make all needed links as comments. Mark off as DONE as you go
+
