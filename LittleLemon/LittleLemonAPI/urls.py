@@ -11,6 +11,7 @@ urlpatterns = [
     # THAT'S THE IDEA ^^^
     # {'get':'list', 'post':'create', 'put':'update', 'patch':'partial_update', 'delete':'destroy'}
         
-    path('menu-items', views.MenuItemView.as_view({'get':'list', 'post':'create', 'update':'update', 'patch':'partial_update', 'delete':'destroy'})),
-    path('menu-items/<int:pk>', views.MenuItemView.as_view({'get':'list', 'put':'update', 'patch':'partial_update', 'delete':'destroy'})),
+    path('menu-items', views.MenuItemView.as_view({'get':'list', 'post':'create'})),
+    path('menu-items/<int:pk>', views.MenuItemView.as_view({'get':'retrieve', 'put':'update', 'patch':'partial_update', 'delete':'destroy'})),
+
 ]

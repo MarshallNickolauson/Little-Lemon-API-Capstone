@@ -1,32 +1,14 @@
 from rest_framework import serializers
+from .models import Category, MenuItem, Cart, Order, OrderItem
 
-# TODO Watch video and write up psudo code based on the explanation
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ['id', 'slug', 'title']
 
-'''
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-'''
+class MenuItemSerializer(serializers.ModelSerializer):
+    category = CategorySerializer(read_only=True)
+    category_id = serializers.IntegerField(write_only=True)
+    class Meta:
+        model = MenuItem
+        fields = ['id', 'category', 'title', 'price', 'category_id', 'featured']
