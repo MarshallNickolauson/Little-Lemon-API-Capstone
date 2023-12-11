@@ -57,6 +57,8 @@ class OrderItem(models.Model):
     unit_price = models.DecimalField(max_digits=6, decimal_places=2)
     price = models.DecimalField(max_digits=6, decimal_places=2)
 
+    # TODO Saving to this model is just a copy of the Cart model. Transfer all fields to here
+
     def __str__(self):
         return self.menuitem + " for " + self.order.username
 

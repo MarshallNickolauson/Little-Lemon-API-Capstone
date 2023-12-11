@@ -57,7 +57,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
     # TODO Look at Admin panel for proper fields to implement
     # TODO It'll actually all be read only since when a new order is created,
     # for each cart item by menuitem_id, a new order item will be created.
-    # so all here is read only lol
+    # so all here is read only lol. You'll have to do the data transfer logic in the view
     
     class Meta:
         model = OrderItem
