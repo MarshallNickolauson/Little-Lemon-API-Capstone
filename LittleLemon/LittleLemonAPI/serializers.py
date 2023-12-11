@@ -35,3 +35,30 @@ class CartSerializer(serializers.ModelSerializer):
         model = Cart
         fields = ['user', 'user_id', 'menuitem', 'menuitem_id', 'quantity', 'unit_price', 'price']
         depth = 5
+        
+class OrderSerializer(serializers.ModelSerializer):
+    
+    user = UserSerializer(read_only=True)
+    user_id = serializers.IntegerField(write_only=True)
+    
+    deliver_user = UserSerializer(read_only=True)
+    deliver_user_id = serializers.IntegerField(write_only=True)
+    
+    status = serializers.BooleanField(read_only=True)
+    total = serializers.DecimalField(max_digits=6, decimal_places=2, read_only=True)
+    date = serializers.DateField(read_only=True)
+    
+    class Meta:
+        model = Order
+        fields = ['user', 'user_id', 'delivery_user', 'delivery_user_id', 'status', 'total', 'date']
+        
+class OrderItemSerializer(serializers.ModelSerializer):
+    
+    # TODO Look at Admin panel for proper fields to implement
+    # TODO It'll actually all be read only since when a new order is created,
+    # for each cart item by menuitem_id, a new order item will be created.
+    # so all here is read only lol
+    
+    class Meta:
+        model = OrderItem
+        fields = ['']

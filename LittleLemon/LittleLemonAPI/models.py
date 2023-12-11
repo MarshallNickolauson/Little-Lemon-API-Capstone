@@ -44,6 +44,9 @@ class Order(models.Model):
     total = models.DecimalField(max_digits=6, decimal_places=2)
     date = models.DateField(db_index=True)
     
+    # TODO total should be all cart items added and then saved here
+    # TODO date should be current date of save execution
+    
     def __str__(self):
         return "Order for " + self.user.username
 

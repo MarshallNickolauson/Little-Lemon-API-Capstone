@@ -123,3 +123,10 @@ class CartView(ModelViewSet):
         user = self.request.user
         Cart.objects.filter(user=user).delete()
         return Response('All cart items deleted successfully.', 200)
+    
+class OrderView(ModelViewSet):
+    # TODO Look at Order Model
+    pass
+
+class OrderItemView(ModelViewSet):
+    pass
