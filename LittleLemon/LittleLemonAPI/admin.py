@@ -7,6 +7,10 @@ class CategoryAdmin(admin.ModelAdmin):
 
 admin.site.register(Category, CategoryAdmin)
 admin.site.register(MenuItem)
-admin.site.register(Cart)
+
+class CartAdmin(admin.ModelAdmin):
+    readonly_fields = ('unit_price', 'price')
+
+admin.site.register(Cart, CartAdmin)
 admin.site.register(Order)
 admin.site.register(OrderItem)

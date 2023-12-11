@@ -27,7 +27,17 @@ class Cart(models.Model):
     price = models.DecimalField(max_digits=6, decimal_places=2)
     
     def __str__(self):
-        return "Cart of " + self.user.username
+        return f"{self.quantity} {self.menuitem.title} in cart of User '{self.user.username}' | subtotal = {self.price}"
+
+    def save(self, *args, **kwargs):
+
+        if not self.unit_price:
+            self.unit_price = self.menuitem.price * self.quantity
+            
+        if not self.price:
+            self.price = self.menuitem.price * self.quantity
+            
+        super().save(*args, **kwargs)
 
     class Meta:
         unique_together = ('menuitem', 'user')
