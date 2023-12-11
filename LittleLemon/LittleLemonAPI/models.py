@@ -30,13 +30,8 @@ class Cart(models.Model):
         return f"{self.quantity} {self.menuitem.title} in cart of User '{self.user.username}' | subtotal = {self.price}"
 
     def save(self, *args, **kwargs):
-
-        if not self.unit_price:
-            self.unit_price = self.menuitem.price * self.quantity
-            
-        if not self.price:
-            self.price = self.menuitem.price * self.quantity
-            
+        self.unit_price = self.menuitem.price
+        self.price = self.menuitem.price * self.quantity
         super().save(*args, **kwargs)
 
     class Meta:

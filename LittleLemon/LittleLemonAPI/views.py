@@ -1,18 +1,18 @@
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework import permissions, status
+from rest_framework.permissions import BasePermission, IsAuthenticated
 from django.contrib.auth.models import User, Group
 from rest_framework.decorators import action
 
 from .models import Category, MenuItem, Cart, Order, OrderItem
-from .serializers import MenuItemSerializer, UserSerializer
+from .serializers import MenuItemSerializer, UserSerializer, CartSerializer
 
-class IsManager(permissions.BasePermission):
+class IsManager(BasePermission):
     def has_permission(self, request, view):
         return request.user.groups.filter(name='Manager').exists()
     
-class IsDeliveryCrew(permissions.BasePermission):
+class IsDeliveryCrew(BasePermission):
     def has_permission(self, request, view):
         return request.user.groups.filter(name='DeliveryCrew').exists()
 
@@ -24,8 +24,8 @@ class MenuItemView(ModelViewSet):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
             return [IsManager()]
         elif self.action == 'list':
-            return [permissions.IsAuthenticated()]
-        return [permissions.IsAuthenticated()]
+            return [IsAuthenticated()]
+        return [IsAuthenticated()]
     
 class ManagerGroupView(ModelViewSet):
     queryset = User.objects.filter(groups__name='Manager')
@@ -88,5 +88,38 @@ class DeliveryCrewGroupView(ModelViewSet):
             return Response({'User not found.', 404})
     
 class CartView(ModelViewSet):
-    queryset = User.objects.filter(groups__name='DeliveryCrew')
-    serializer_class = UserSerializer
+    serializer_class = CartSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        user = self.request.user
+        return Cart.objects.filter(user=user)
+    
+    def create(self, request, *args, **kwargs):
+        data = request.data.copy()
+        data['user_id'] = self.request.user.id
+        
+        menuitem_id = data['menuitem_id']
+        if menuitem_id:
+            try:
+                MenuItem.objects.get(pk=menuitem_id)
+            except MenuItem.DoesNotExist:
+                return Response({'Invalid menuitem_id'}, 400)
+            
+        existing_cart_entry = Cart.objects.filter(user=self.request.user, menuitem_id=menuitem_id).first()
+                 
+        if existing_cart_entry:
+            existing_cart_entry.quantity += int(data.get('quantity', 1))
+            existing_cart_entry.save()
+            cart_serializer = self.get_serializer(existing_cart_entry)
+            return Response(cart_serializer.data, 200)
+        else:
+            cart_serializer = self.get_serializer(data=data)
+            cart_serializer.is_valid(raise_exception=True)
+            cart_serializer.save()
+            return Response(cart_serializer.data, 200)
+        
+    def destroy(self, request, *args, **kwargs):
+        user = self.request.user
+        Cart.objects.filter(user=user).delete()
+        return Response('All cart items deleted successfully.', 200)

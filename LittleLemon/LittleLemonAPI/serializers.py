@@ -15,15 +15,23 @@ class MenuItemSerializer(serializers.ModelSerializer):
         fields = ['id', 'category', 'title', 'price', 'category_id', 'featured']
         
 class UserSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'password', 'groups', 'user_permissions']
         depth = 3
         
 class CartSerializer(serializers.ModelSerializer):
-    unit_price = serializers.SerializerMethodField(read_only=True)
-    price = serializers.SerializerMethodField(read_only=True)
+    unit_price = serializers.DecimalField(max_digits=6, decimal_places=2, read_only=True)
+    price = serializers.DecimalField(max_digits=6, decimal_places=2, read_only=True)
+
+    menuitem = MenuItemSerializer(read_only=True)
+    menuitem_id = serializers.IntegerField(write_only=True)
+
+    user = UserSerializer(read_only=True)
+    user_id = serializers.IntegerField(write_only=True)
 
     class Meta:
         model = Cart
-        fields = ['user', 'menuitem', 'quantity', 'unit_price', 'price']
+        fields = ['user', 'user_id', 'menuitem', 'menuitem_id', 'quantity', 'unit_price', 'price']
+        depth = 5

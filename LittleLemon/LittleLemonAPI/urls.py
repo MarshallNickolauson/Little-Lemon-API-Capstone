@@ -20,5 +20,5 @@ urlpatterns = [
     path('groups/delivery-crew/users', views.DeliveryCrewGroupView.as_view({'get':'list', 'post':'assign_to_deliver_crew_group'})),
     path('groups/delivery-crew/users/<int:pk>', views.DeliveryCrewGroupView.as_view({'get':'retrieve', 'delete':'remove_delivery_crew_role'})),
 
-    #path('cart/menu-items', )
+    path('cart/menu-items', views.CartView.as_view({'get':'list', 'post':'create', 'delete':'destroy'}))
 ]
