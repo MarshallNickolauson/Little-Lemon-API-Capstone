@@ -44,11 +44,11 @@ Order Management Endpoints:
 
 Endpoint                    | Role           | Method     | Purpose                                                                                                                                               | Marked as Done
 ----------------------------|----------------|------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|---------------
-/api/orders                 | Customer       | GET        | Returns all orders with order items created by this user                                                                                              |
-/api/orders                 | Customer       | POST       | Creates a new order item for the current user. Gets current cart items from the cart endpoints and adds those items to the order items table.         |
+/api/orders                 | Customer       | GET        | Returns all orders with order items created by this user                                                                                              | DONE
+/api/orders                 | Customer       | POST       | Creates a new order item for the current user. Gets current cart items from the cart endpoints and adds those items to the order items table.         | DONE
                             |                |            | Then deletes all items from the cart for this user.                                                                                                   | 
 /api/orders/{orderId}       | Customer       | GET        | Returns all items for this order id. If the order ID doesn’t belong to the current user, it displays an appropriate HTTP error status code            | 
-/api/orders                 | Manager        | GET        | Returns all orders with order items by all users                                                                                                      | 
+/api/orders                 | Manager        | GET        | Returns all orders with order items by all users                                                                                                      | DONE
 /api/orders/{orderId}       | Customer       | PUT, PATCH | Updates the order. A manager can use this endpoint to set a delivery crew to this order, and also update the order status to 0 or 1.                  |
                             |                |            | If a delivery crew is assigned to this order and the status = 0, it means the order is out for delivery.                                              |
                             |                |            | If a delivery crew is assigned to this order and the status = 1, it means the order has been delivered.                                               | 
@@ -61,3 +61,5 @@ OTHER:
 Implement proper filtering, pagination and sorting capabilities for /api/menu-items and /api/orders endpoints.
 
 Finally, apply some throttling for the authenticated users and anonymous or unauthenticated users. -> DONE
+
+Add minimum value validators to the serializers. If it's below 0, just set it to zero. Don't do the whole ADFHGJIAFJOADFIiASDF shit drf does when there's a 500 error.

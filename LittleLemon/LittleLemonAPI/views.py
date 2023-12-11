@@ -4,9 +4,10 @@ from rest_framework.response import Response
 from rest_framework.permissions import BasePermission, IsAuthenticated
 from django.contrib.auth.models import User, Group
 from rest_framework.decorators import action
+from django.utils import timezone
 
-from .models import Category, MenuItem, Cart, Order, OrderItem
-from .serializers import MenuItemSerializer, UserSerializer, CartSerializer
+from .models import *
+from .serializers import *
 
 class IsManager(BasePermission):
     def has_permission(self, request, view):
@@ -125,8 +126,56 @@ class CartView(ModelViewSet):
         return Response('All cart items deleted successfully.', 200)
     
 class OrderView(ModelViewSet):
-    # TODO Look at Order Model
-    pass
-
-class OrderItemView(ModelViewSet):
-    pass
+    serializer_class = OrderSerializer
+    permission_classes = [IsAuthenticated, IsManager]
+    
+    def get_queryset(self):
+        if IsManager in self.permission_classes:
+            return Order.objects.all()
+        else:
+            user = self.request.user
+            return Order.objects.filter(user=user)
+    
+    def create(self, request, *args, **kwargs):
+        user = self.request.user
+        
+        cart_items = Cart.objects.filter(user=user)
+        if not cart_items.exists():
+            return Response('No cart items to create order with.', 400)
+        
+        total = 0
+        
+        for cart_item in cart_items:
+            total += cart_item.price
+            print(cart_item.price)
+        
+        order_data = {
+            'user': user.id,
+            'delivery_user_id': request.data.get('delivery_user_id'),
+            'status': 0,
+            'total': total,
+            'date': timezone.now().date(),
+        }
+        
+        order_serializer = self.get_serializer(data=order_data)
+        order_serializer.is_valid(raise_exception=True)
+        order_instance = order_serializer.save()
+        
+        if not order_instance.id:
+            return Response({'error': 'Failed to create Order instance.'}, status=500)
+        
+        order_items = []
+        for cart_item in cart_items:
+            order_item = OrderItem(
+                order = order_instance,
+                menuitem = cart_item.menuitem,
+                quantity = cart_item.quantity,
+                unit_price = cart_item.unit_price,
+                price = cart_item.price
+            )
+            order_items.append(order_item)
+        
+        OrderItem.objects.bulk_create(order_items)
+        cart_items.delete()
+        
+        return Response('Order created with all item from cart and cart items deleted successfully.', 200)

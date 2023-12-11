@@ -37,12 +37,18 @@ class Cart(models.Model):
     class Meta:
         unique_together = ('menuitem', 'user')
 
+from django.utils import timezone
+
 class Order(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    delivery_crew = models.ForeignKey(User, on_delete=models.SET_NULL, related_name="delivery_crew", null=True)
+    delivery_user = models.ForeignKey(User, on_delete=models.SET_NULL, related_name="delivery_crew", null=True)
     status = models.BooleanField(db_index=True, default=0)
     total = models.DecimalField(max_digits=6, decimal_places=2)
     date = models.DateField(db_index=True)
+    
+    def save(self, *args, **kwargs):
+        self.date = timezone.now().date()
+        super().save(*args, **kwargs)
     
     # TODO total should be all cart items added and then saved here
     # TODO date should be current date of save execution
@@ -51,7 +57,7 @@ class Order(models.Model):
         return "Order for " + self.user.username
 
 class OrderItem(models.Model):
-    order = models.ForeignKey(User, on_delete=models.CASCADE)
+    order = models.ForeignKey(Order, on_delete=models.CASCADE)
     menuitem = models.ForeignKey(MenuItem, on_delete=models.CASCADE)
     quantity = models.SmallIntegerField()
     unit_price = models.DecimalField(max_digits=6, decimal_places=2)
@@ -60,7 +66,4 @@ class OrderItem(models.Model):
     # TODO Saving to this model is just a copy of the Cart model. Transfer all fields to here
 
     def __str__(self):
-        return self.menuitem + " for " + self.order.username
-
-    class Meta:
-        unique_together = ('order', 'menuitem')
+        return "Order item"

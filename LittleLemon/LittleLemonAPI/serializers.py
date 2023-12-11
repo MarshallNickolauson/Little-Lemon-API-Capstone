@@ -37,20 +37,17 @@ class CartSerializer(serializers.ModelSerializer):
         depth = 5
         
 class OrderSerializer(serializers.ModelSerializer):
-    
-    user = UserSerializer(read_only=True)
-    user_id = serializers.IntegerField(write_only=True)
-    
-    deliver_user = UserSerializer(read_only=True)
-    deliver_user_id = serializers.IntegerField(write_only=True)
+    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+    delivery_user = UserSerializer(read_only=True)
+    delivery_user_id = serializers.IntegerField(write_only=True)
     
     status = serializers.BooleanField(read_only=True)
-    total = serializers.DecimalField(max_digits=6, decimal_places=2, read_only=True)
+    total = serializers.DecimalField(max_digits=6, decimal_places=2)
     date = serializers.DateField(read_only=True)
     
     class Meta:
         model = Order
-        fields = ['user', 'user_id', 'delivery_user', 'delivery_user_id', 'status', 'total', 'date']
+        fields = ['user', 'delivery_user', 'delivery_user_id', 'status', 'total', 'date']
         
 class OrderItemSerializer(serializers.ModelSerializer):
     
@@ -61,4 +58,4 @@ class OrderItemSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = OrderItem
-        fields = ['']
+        fields = ['order', 'menuitem', 'quantity', 'unit_price', 'price']
