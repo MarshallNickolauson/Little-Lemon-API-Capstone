@@ -127,13 +127,13 @@ class CartView(ModelViewSet):
     
 class OrderView(ModelViewSet):
     serializer_class = OrderSerializer
-    permission_classes = [IsAuthenticated, IsManager]
+    permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        if IsManager in self.permission_classes:
+        user = self.request.user
+        if IsManager.has_permission(self, self.request, self):
             return Order.objects.all()
         else:
-            user = self.request.user
             return Order.objects.filter(user=user)
     
     def create(self, request, *args, **kwargs):
@@ -179,3 +179,66 @@ class OrderView(ModelViewSet):
         cart_items.delete()
         
         return Response('Order created with all item from cart and cart items deleted successfully.', 200)
+    
+from django.shortcuts import get_object_or_404
+    
+class OrderItemView(ModelViewSet):
+    serializer_class = OrderSerializer
+    permission_classes = [IsAuthenticated]
+    queryset = OrderItem.objects.select_related('order').all()
+    
+    @action(detail=True, methods=['get'])
+    def list_order_items(self, request, pk=None):
+        try:
+            order = Order.objects.get(pk=pk)            
+
+            if request.user == order.user or IsManager().has_permission(request, self):
+                order_items = OrderItem.objects.filter(order_id=pk)
+                
+                order_serializer = OrderSerializer(order)
+                order_items_serializer = OrderItemSerializer(order_items, many=True)
+                
+                response_data = {
+                    'order': order_serializer.data,
+                    'order_items': order_items_serializer.data,
+                }
+                
+                return Response(response_data, 200)
+            else:
+                return Response(f'No permission to view the order items for order {pk}', 403)
+        except:
+            return Response(f'No order items found for order #{pk}', 404)
+        
+    @action(detail=True, methods=['put', 'patch'])
+    def update_order_item(self, request, *args, **kwargs):
+        try:
+            pk = kwargs.get('pk')
+            order = Order.objects.get(pk=pk)
+            
+            if request.user == order.user or IsManager().has_permission(request, self):
+                order_serializer = OrderSerializer(order, data=request.data, partial=True)
+                
+                delivery_user_id = request.data.get('delivery_user_id')
+                status = request.data.get('status')
+
+                if delivery_user_id is not None:
+                    order.delivery_user_id = delivery_user_id
+
+                if status is not None:
+                    order.status = status.lower() == 'true'
+                else:
+                    order.status = False
+
+                order_serializer.is_valid()
+                order.save()
+
+                response_data = {
+                    'order': order_serializer.data,
+                }
+                
+                return Response(response_data, 200)
+            else:
+                return Response(f'No permission to update order #{pk}', 403)
+        except Exception as e:
+            print(e)
+            return Response(f'Order #{pk} not found', 404)

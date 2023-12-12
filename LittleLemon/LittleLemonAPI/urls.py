@@ -22,5 +22,6 @@ urlpatterns = [
 
     path('cart/menu-items', views.CartView.as_view({'get':'list', 'post':'create', 'delete':'destroy'})),
     
-    path('orders', views.OrderView.as_view({'get':'list', 'post':'create'}))
+    path('orders', views.OrderView.as_view({'get':'list', 'post':'create'})),
+    path('orders/<int:pk>', views.OrderItemView.as_view({'get':'list_order_items', 'put':'update_order_item', 'patch':'update_order_item'})),
 ]
