@@ -66,4 +66,4 @@ class OrderItem(models.Model):
     # TODO Saving to this model is just a copy of the Cart model. Transfer all fields to here
 
     def __str__(self):
-        return "Order item"
+        return "Order item for " + self.order.user.username 

@@ -52,13 +52,13 @@ Endpoint                    | Role           | Method     | Purpose             
 /api/orders/{orderId}       | Customer       | PUT, PATCH | Updates the order. A manager can use this endpoint to set a delivery crew to this order, and also update the order status to 0 or 1.                  | DONE
                             |                |            | If a delivery crew is assigned to this order and the status = 0, it means the order is out for delivery.                                              | DONE
                             |                |            | If a delivery crew is assigned to this order and the status = 1, it means the order has been delivered.                                               | DONE
-/api/orders/{orderId}       | Manager        | DELETE     | Deletes this order                                                                                                                                    | 
-/api/orders                 | Delivery crew  | GET        | Returns all orders with order items assigned to the delivery crew.                                                                                    | 
-/api/orders/{orderId}       | Delivery crew  | PATCH      | A delivery crew can use this endpoint to update the order status to 0 or 1. The delivery crew will not be able to update anything else in this order. | 
+/api/orders/{orderId}       | Manager        | DELETE     | Deletes this order                                                                                                                                    | DONE
+/api/orders                 | Delivery crew  | GET        | Returns all orders with order items assigned to the delivery crew.                                                                                    | DONE
+/api/orders/{orderId}       | Delivery crew  | PATCH      | A delivery crew can use this endpoint to update the order status to 0 or 1. The delivery crew will not be able to update anything else in this order. | DONE
 
 OTHER:
 
-Implement proper filtering, pagination and sorting capabilities for /api/menu-items and /api/orders endpoints.
+Implement proper filtering, pagination and sorting capabilities for /api/menu-items and /api/orders endpoints. DONE
 
 Finally, apply some throttling for the authenticated users and anonymous or unauthenticated users. -> DONE
 

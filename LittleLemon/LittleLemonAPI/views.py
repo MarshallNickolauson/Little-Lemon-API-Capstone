@@ -5,6 +5,7 @@ from rest_framework.permissions import BasePermission, IsAuthenticated
 from django.contrib.auth.models import User, Group
 from rest_framework.decorators import action
 from django.utils import timezone
+from django.core.paginator import Paginator, EmptyPage
 
 from .models import *
 from .serializers import *
@@ -27,6 +28,35 @@ class MenuItemView(ModelViewSet):
         elif self.action == 'list':
             return [IsAuthenticated()]
         return [IsAuthenticated()]
+    
+    def list(self, request, *args, **kwargs):
+        
+        items = MenuItem.objects.select_related('category').all()
+        category_name = request.query_params.get('category')
+        to_price = request.query_params.get('to_price')
+        search = request.query_params.get('search')
+        ordering = request.query_params.get('ordering')
+        page = request.query_params.get('page', default=1)
+        perpage = request.query_params.get('perpage', default=2)
+        
+        if category_name:
+            items = items.filter(category__title=category_name)
+        if to_price:
+            items = items.filter(price=to_price)
+        if search:
+            items = items.filter(title__icontains=search)
+        if ordering:
+            ordering_fields = ordering.split(",")
+            items = items.order_by(*ordering_fields)
+            
+        paginator = Paginator(items, per_page=perpage)
+        try:
+            items = paginator.page(number=page)
+        except EmptyPage:
+            items = []
+            
+        serialized_items = MenuItemSerializer(items, many=True)
+        return Response(serialized_items.data, 200)
     
 class ManagerGroupView(ModelViewSet):
     queryset = User.objects.filter(groups__name='Manager')
@@ -128,18 +158,64 @@ class CartView(ModelViewSet):
 class OrderView(ModelViewSet):
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]
-    
-    def get_queryset(self):
-        user = self.request.user
-        if IsManager.has_permission(self, self.request, self):            
-            return Order.objects.all()
-        else:
-            return Order.objects.filter(user=user)
+    queryset = Order.objects.all()
+        
+    def list(self, request, *args, **kwargs):
+        try:            
+            user = self.request.user
+            orders = Order.objects.none()
+            order_items = OrderItem.objects.none()
+
+            if IsManager.has_permission(self, request, self):
+                orders = Order.objects.all()
+                order_items = OrderItem.objects.select_related('order').all()
+            elif IsDeliveryCrew.has_permission(self, request, self):
+                orders = Order.objects.filter(status=0)
+                order_items = OrderItem.objects.filter(order__in=orders)
+            else:
+                orders = Order.objects.filter(user=user)
+                order_items = OrderItem.objects.filter(order__in=orders)
+                
+            status_filter = request.query_params.get('status')
+            if status_filter is not None:
+                orders = orders.filter(status=status_filter)
+            
+            ordering = request.query_params.get('ordering')
+            if ordering:
+                ordering_fields = ordering.split(",")
+                orders = orders.order_by(*ordering_fields)
+                
+            page = request.query_params.get('page', default=1)
+            perpage = request.query_params.get('perpage', default=2)
+            paginator = Paginator(orders, per_page=perpage)
+            try:
+                orders = paginator.page(number=page)
+            except EmptyPage:
+                orders = []
+            
+            order_serializer = OrderSerializer(orders, many=True)
+            order_items_serializer = OrderItemSerializer(order_items, many=True)
+
+            response_data = {
+                'orders': order_serializer.data,
+                'order_items': order_items_serializer.data,
+            }
+
+            return Response(response_data, 200)
+
+        except Exception as e:
+            print(e)
+            return Response({'error':str(e)}, 500)
         
     @action(detail=True, methods=['get'])
     def list_order_with_items(self, request, pk=None):
         try:
             order = self.get_object()
+            
+            if IsDeliveryCrew().has_permission(request, self):
+                if order.status == 1:
+                    return Response('Order has already been delivered. No data to show for u', 200)
+            
             serializer = self.get_serializer(order)
             order_items = OrderItem.objects.filter(order=order)
             order_items_serializer = OrderItemSerializer(order_items, many=True)
@@ -204,30 +280,49 @@ class OrderView(ModelViewSet):
             pk = kwargs.get('pk')
             order = Order.objects.get(pk=pk)
             
-            if request.user == order.user or IsManager().has_permission(request, self):
-                order_serializer = OrderSerializer(order, data=request.data, partial=True)
-                
-                delivery_user_id = request.data.get('delivery_user_id')
-                status = request.data.get('status')
-
-                if delivery_user_id is not None:
-                    order.delivery_user_id = delivery_user_id
-
-                if status is not None:
-                    order.status = status.lower() == 'true'
-                else:
-                    order.status = False
-
-                order_serializer.is_valid()
-                order.save()
-
-                response_data = {
-                    'order': order_serializer.data,
-                }
-                
-                return Response(response_data, 200)
-            else:
+            if request.user == order.user:
                 return Response(f'No permission to update order #{pk}', 403)
+            
+            if IsManager().has_permission(request, self):
+                if 'delivery_user_id' in request.data:
+                    order.delivery_user_id = request.data['delivery_user_id']
+
+                if 'status' in request.data:
+                    order.status = request.data['status'].lower() == 'true'
+
+            elif IsDeliveryCrew().has_permission(request, self):
+                if 'status' in request.data:
+                    order.status = request.data['status'].lower() == 'true'
+                else:
+                    return Response(f'No permission to update order #{pk} other than status', 403)
+
+            order_serializer = OrderSerializer(order, data=request.data, partial=True)
+            order_serializer.is_valid()
+            order.save()
+
+            response_data = {
+                'order': order_serializer.data,
+            }
+            
+            return Response(response_data, 200)
+        
+        except Exception as e:
+            print(e)
+            return Response(f'Order #{pk} not found', 404)
+    
+    def destroy(self, request, *args, **kwargs):
+        try:
+            pk = kwargs.get('pk')
+            order = Order.objects.get(pk=pk)
+            
+            if request.user == order.user or IsManager().has_permission(request, self):
+                order_items = OrderItem.objects.filter(order=order)
+                order_items.delete()
+                order.delete()
+                return Response(f'Order #{pk} with order items deleted successfully.', 200)
+            else:
+                return Response(f'No permission to delete order #{pk}', 403)
+
         except Exception as e:
             print(e)
             return Response(f'Order #{pk} not found', 404)
