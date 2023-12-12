@@ -131,11 +131,29 @@ class OrderView(ModelViewSet):
     
     def get_queryset(self):
         user = self.request.user
-        if IsManager.has_permission(self, self.request, self):
+        if IsManager.has_permission(self, self.request, self):            
             return Order.objects.all()
         else:
             return Order.objects.filter(user=user)
+        
+    @action(detail=True, methods=['get'])
+    def list_order_with_items(self, request, pk=None):
+        try:
+            order = self.get_object()
+            serializer = self.get_serializer(order)
+            order_items = OrderItem.objects.filter(order=order)
+            order_items_serializer = OrderItemSerializer(order_items, many=True)
+            
+            response_data = {
+                'order': serializer.data,
+                'order_items': order_items_serializer.data
+            }
     
+            return Response(response_data, 200)
+        
+        except Exception as e:
+            return Response({'error':str(e)}, 404)
+
     def create(self, request, *args, **kwargs):
         user = self.request.user
         
@@ -180,35 +198,6 @@ class OrderView(ModelViewSet):
         
         return Response('Order created with all item from cart and cart items deleted successfully.', 200)
     
-from django.shortcuts import get_object_or_404
-    
-class OrderItemView(ModelViewSet):
-    serializer_class = OrderSerializer
-    permission_classes = [IsAuthenticated]
-    queryset = OrderItem.objects.select_related('order').all()
-    
-    @action(detail=True, methods=['get'])
-    def list_order_items(self, request, pk=None):
-        try:
-            order = Order.objects.get(pk=pk)            
-
-            if request.user == order.user or IsManager().has_permission(request, self):
-                order_items = OrderItem.objects.filter(order_id=pk)
-                
-                order_serializer = OrderSerializer(order)
-                order_items_serializer = OrderItemSerializer(order_items, many=True)
-                
-                response_data = {
-                    'order': order_serializer.data,
-                    'order_items': order_items_serializer.data,
-                }
-                
-                return Response(response_data, 200)
-            else:
-                return Response(f'No permission to view the order items for order {pk}', 403)
-        except:
-            return Response(f'No order items found for order #{pk}', 404)
-        
     @action(detail=True, methods=['put', 'patch'])
     def update_order_item(self, request, *args, **kwargs):
         try:
